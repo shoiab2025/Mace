@@ -14,6 +14,8 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import RenderHTML from 'react-native-render-html';
+import { useAuth } from '../navigation/AuthContext';
+import { submitTestAPI } from '../API_STORE/test_api';
 
 const { width } = Dimensions.get('window');
 
@@ -23,6 +25,8 @@ const TestScreen = ({ navigation, route }) => {
   const [selectedAnswers, setSelectedAnswers] = useState({});
   const [markedForReview, setMarkedForReview] = useState({});
   const [timeLeft, setTimeLeft] = useState(15 * 60);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { authUser } = useAuth();
 
   // Timer effect
   useEffect(() => {
@@ -39,10 +43,11 @@ const TestScreen = ({ navigation, route }) => {
   }, [timeLeft]);
 
   const handleAutoSubmit = () => {
+    const submissionData = prepareSubmissionData();
     Alert.alert(
       'Time Up!',
       'Your test has been automatically submitted.',
-      [{ text: 'OK', onPress: handleSubmit }]
+      [{ text: 'OK', onPress: () => handleFinalSubmit(submissionData) }]
     );
   };
 
@@ -146,7 +151,8 @@ const TestScreen = ({ navigation, route }) => {
         detailed_answers.push({
           question_id: questionId,
           selected_options: [],
-          is_correct: false
+          is_correct: false,
+          status: 'skipped'
         });
         return;
       }
@@ -154,8 +160,8 @@ const TestScreen = ({ navigation, route }) => {
       const userAnswerLetter = String.fromCharCode(65 + userAnswer);
       const selected_options = [userAnswerLetter];
       
-      // Check if answer is correct
-      const is_correct = question.correct_options.includes(userAnswerLetter);
+      // Check if answer is correct - assuming correct_options exists in your data
+      const is_correct = question.correct_options?.includes(userAnswerLetter) || false;
       
       // Calculate score
       if (is_correct) {
@@ -171,7 +177,8 @@ const TestScreen = ({ navigation, route }) => {
       detailed_answers.push({
         question_id: questionId,
         selected_options: selected_options,
-        is_correct: is_correct
+        is_correct: is_correct,
+        status: is_correct ? 'correct' : 'wrong'
       });
     });
 
@@ -189,44 +196,119 @@ const TestScreen = ({ navigation, route }) => {
       skipped_questions: skipped_questions,
       average_score: Math.round(average_score * 100) / 100,
       detailed_answers: detailed_answers,
-      submittedAt: Date.now()
+      total_questions: questions.length,
+      time_spent: (15 * 60) - timeLeft, // in seconds
+      submitted_at: new Date().toISOString()
     };
   };
 
-  const handleSubmit = () => {
+  const prepareSubmissionData = () => {
     const result = calculateScore();
     
-    // Prepare submission data
+    // Flat structure as required by the API
     const submissionData = {
-      test: testData._id, // Make sure testData has _id
-      total_questions: questions.length,
+      // Core identifiers
+      user: authUser._id,
+      test: testData._id,
+      subject: testData.test_subject?._id || null,
+      lesson: testData.test_lesson?._id || null,
+      
+      // Required flat fields (as per API validation)
+      total_questions: result.total_questions,
       correct_answers: result.correct_answers,
       wrong_answers: result.wrong_answers,
       skipped_questions: result.skipped_questions,
       score: result.score,
       average_score: result.average_score,
-      detailed_answers: result.detailed_answers,
-      submittedAt: result.submittedAt
+      time_spent: result.time_spent,
+      submitted_at: result.submitted_at,
+      
+      // Additional fields that might be useful
+      test_name: testData.test_name,
+      test_type: testData.test_type,
+      user_name: authUser.name || authUser.username,
+      marked_questions: Object.keys(markedForReview).filter(key => markedForReview[key]).length,
+      
+      // Detailed answers array
+      detailed_answers: result.detailed_answers.map((answer, index) => {
+        const question = questions[index];
+        return {
+          question_id: answer.question_id,
+          question_number: index + 1,
+          selected_options: answer.selected_options,
+          correct_options: question.correct_options || [],
+          is_correct: answer.is_correct,
+          status: answer.status,
+          marks: {
+            positive: question.positive_mark || 1,
+            negative: question.negative_mark || 0,
+            obtained: answer.is_correct ? (question.positive_mark || 1) : (question.negative_mark ? -question.negative_mark : 0)
+          },
+          marked_for_review: !!markedForReview[index]
+        };
+      })
     };
 
-    // For testing - show detailed result in alert
+    return submissionData;
+  };
+
+  const handleSubmit = () => {
+    const submissionData = prepareSubmissionData();
+    
+    // Show confirmation before final submission
     Alert.alert(
-      'Test Results',
-      `Score: ${result.score}\n` +
-      `Correct: ${result.correct_answers}/${questions.length}\n` +
-      `Wrong: ${result.wrong_answers}\n` +
-      `Skipped: ${result.skipped_questions}\n` +
-      `Percentage: ${result.average_score}%`,
+      'Submit Test',
+      `Are you sure you want to submit your test?\n\nAnswered: ${submissionData.correct_answers + submissionData.wrong_answers}/${totalQuestions}\nMarked for Review: ${submissionData.marked_questions}`,
       [
         {
-          text: 'OK',
+          text: 'Review Again',
+          style: 'cancel'
+        },
+        {
+          text: 'Submit',
+          onPress: async () => {
+            setIsSubmitting(true);
+            try {
+              const response = await submitTestAPI(submissionData);
+              if (response.success) {
+                handleFinalSubmit(submissionData, response);
+              } else {
+                throw new Error(response.message || 'Failed to submit test');
+              }
+            } catch (error) {
+              console.error('Submission error:', error);
+              Alert.alert('Submission Failed', error.message || 'Failed to submit test. Please try again.');
+            } finally {
+              setIsSubmitting(false);
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleFinalSubmit = (submissionData, apiResponse = null) => {
+    Alert.alert(
+      'Test Submitted Successfully!',
+      `Score: ${submissionData.score}\n` +
+      `Correct: ${submissionData.correct_answers}/${totalQuestions}\n` +
+      `Wrong: ${submissionData.wrong_answers}\n` +
+      `Skipped: ${submissionData.skipped_questions}\n` +
+      `Percentage: ${submissionData.average_score}%`,
+      [
+        {
+          text: 'View Detailed Results',
           onPress: () => {
-            // Navigate to results screen
             navigation.navigate('TestResult', {
               testData,
               userAnswers: selectedAnswers,
-              submissionData,
-              totalQuestions: questions.length
+              submissionData: {
+                ...submissionData,
+                apiResponse // Include API response if available
+              },
+              totalQuestions: questions.length,
+              timeSpent: submissionData.time_spent,
+              markedQuestions: markedForReview
             });
           }
         }
@@ -521,11 +603,16 @@ const TestScreen = ({ navigation, route }) => {
               </TouchableOpacity>
             ) : (
               <TouchableOpacity 
-                style={[styles.navButton, styles.submitButton]}
+                style={[
+                  styles.navButton, 
+                  styles.submitButton,
+                  isSubmitting && styles.disabledButton
+                ]}
                 onPress={handleSubmit}
+                disabled={isSubmitting}
               >
                 <Text style={[styles.navButtonText, styles.submitButtonText]}>
-                  Submit
+                  {isSubmitting ? 'Submitting...' : 'Submit'}
                 </Text>
                 <Icon name="checkmark-done" size={20} color="#fff" />
               </TouchableOpacity>

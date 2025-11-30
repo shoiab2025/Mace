@@ -11,14 +11,8 @@ import {
 } from 'react-native';
 
 const EditProfileScreen = ({ navigation }) => {
-  const [userData, setUserData] = useState({
-    name: 'student1',
-    email: 'student@gmail.com',
-    phone: '9677082133',
-    school: 'School',
-    class: 'Class 6',
-    institution: ''
-  });
+  const { authUser} = useState();
+  const [userData, setUserData] = useState(authUser);
 
   const handleSaveChanges = () => {
     // Add save logic here
@@ -46,7 +40,7 @@ const EditProfileScreen = ({ navigation }) => {
             <Text style={styles.label}>Full Name</Text>
             <TextInput
               style={styles.input}
-              value={userData.name}
+              value={userData.username}
               onChangeText={(value) => updateField('name', value)}
               placeholder="Enter your full name"
             />
@@ -68,7 +62,7 @@ const EditProfileScreen = ({ navigation }) => {
             <Text style={styles.label}>Phone Number</Text>
             <TextInput
               style={styles.input}
-              value={userData.phone}
+              value={userData.phoneNumber}
               onChangeText={(value) => updateField('phone', value)}
               placeholder="Enter your phone number"
               keyboardType="phone-pad"

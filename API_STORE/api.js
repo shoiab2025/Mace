@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_ENDPOINT = "http://10.149.195.100:5000/api";
+const API_ENDPOINT = "https://nexgen-e.com/api";
 
 export const fetchDatas = async (method, url, data = null) => {
     try {
@@ -16,6 +16,7 @@ export const fetchDatas = async (method, url, data = null) => {
 
         console.log(config);
         const response = await axios(config);
+        console.log("te response", response        );
         return response.data;
 
     } catch (error) {

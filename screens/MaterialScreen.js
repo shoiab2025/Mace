@@ -255,6 +255,7 @@ const styles = StyleSheet.create({
   // Materials List
   materialsList: {
     paddingHorizontal: 16,
+    marginTop: 20
   },
   materialCard: {
     backgroundColor: '#FFFFFF',

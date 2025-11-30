@@ -12,13 +12,58 @@ import {
   Alert
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { useAuth } from '../navigation/AuthContext';
 
 const ProfileScreen = ({ navigation }) => {
+  const { authUser } = useAuth();
+
+  // Handle case when user is not logged in
+  if (!authUser) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar backgroundColor="#b3b72b" barStyle="light-content" />
+        
+        {/* Header */}
+        <View style={styles.header} />
+
+        <View style={styles.notLoggedInContainer}>
+          <View style={styles.notLoggedInContent}>
+            <Icon name="person-circle-outline" size={80} color="#b3b72b" />
+            <Text style={styles.notLoggedInTitle}>Not Logged In</Text>
+            <Text style={styles.notLoggedInMessage}>
+              Please sign in to access your profile and settings
+            </Text>
+            
+            <TouchableOpacity 
+              style={styles.loginButton}
+              onPress={() => navigation.navigate('Login')}
+            >
+              <Text style={styles.loginButtonText}>Sign In</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.signupButton}
+              onPress={() => navigation.navigate('SignUp')} // Adjust based on your navigation
+            >
+              <Text style={styles.signupButtonText}>Create Account</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* App Version */}
+          <View style={styles.versionContainer}>
+            <Text style={styles.versionText}>MACE™ v2.8.0</Text>
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Original code for logged in user
   const userInfo = {
-    name: 'Student1',
-    role: 'Student',
-    phone: '9677082133',
-    email: 'student@gmail.com',
+    name: authUser?.username,
+    role: authUser?.role,
+    phone: authUser?.phoneNumber,
+    email: authUser?.email,
     joinDate: 'Joined Jan 2024',
     coursesCompleted: 12,
     testsTaken: 45
@@ -97,25 +142,6 @@ const ProfileScreen = ({ navigation }) => {
           <View style={styles.userInfo}>
             <Text style={styles.userName}>{userInfo.name}</Text>
             <Text style={styles.userRole}>{userInfo.role}</Text>
-            <Text style={styles.joinDate}>{userInfo.joinDate}</Text>
-          </View>
-
-          {/* Stats */}
-          <View style={styles.statsContainer}>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{userInfo.coursesCompleted}</Text>
-              <Text style={styles.statLabel}>Courses</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{userInfo.testsTaken}</Text>
-              <Text style={styles.statLabel}>Tests</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>4.8</Text>
-              <Text style={styles.statLabel}>Rating</Text>
-            </View>
           </View>
         </View>
 
@@ -194,7 +220,6 @@ const ProfileScreen = ({ navigation }) => {
           <Text style={styles.versionText}>MACE™ v2.8.0</Text>
         </View>
       </ScrollView>
-
     </SafeAreaView>
   );
 };
@@ -216,23 +241,70 @@ const styles = StyleSheet.create({
     elevation: 4,
     height: 150
   },
-  headerContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  // Not logged in styles
+  notLoggedInContainer: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    alignContent:'center',
-    height: 100
+    marginTop: -60,
   },
-  appTitle: {
+  notLoggedInContent: {
+    backgroundColor: '#fff',
+    marginHorizontal: 20,
+    padding: 30,
+    borderRadius: 16,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+    width: '90%',
+  },
+  notLoggedInTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#333',
+    marginTop: 16,
+    marginBottom: 8,
   },
-  headerSubtitle: {
-    fontSize: 18,
-    color: '#fff',
-    fontWeight: '500',
+  notLoggedInMessage: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 22,
   },
+  loginButton: {
+    backgroundColor: '#b3b72b',
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+    borderRadius: 8,
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  loginButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  signupButton: {
+    backgroundColor: 'transparent',
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#b3b72b',
+    width: '100%',
+    alignItems: 'center',
+  },
+  signupButtonText: {
+    color: '#b3b72b',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  // Rest of your existing styles remain the same
   content: {
     flex: 1,
     marginTop: -60,
@@ -445,33 +517,6 @@ const styles = StyleSheet.create({
   versionText: {
     fontSize: 14,
     color: '#999',
-  },
-  tabBar: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
-    paddingBottom: 10,
-    paddingTop: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 8,
-  },
-  tabItem: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tabText: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 4,
-  },
-  activeTabText: {
-    color: '#b3b72b',
-    fontWeight: '600',
   },
 });
 

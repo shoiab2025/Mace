@@ -44,3 +44,34 @@ export const fetchPrivateCourses = async () => {
     console.error(`Error fetching public courses error is: ${error}`);
   }
 };
+
+export const AddCourseJoin = async (data) => {
+  try {
+    const response = await fetchDatas('post', '/courses/request-join/', data);
+    console.log("the data", response)
+    if (response) { 
+      return response;
+    } else {
+      throw new Error('Cant Join courses found'); 
+    }
+
+  } catch (error) {
+    console.error(`Error fetching Joining courses error is: ${error}`);
+  }
+};
+
+export const ApprovalJoinRequest = async (data) => {
+  try {
+    const response = await fetchDatas('post', '/courses/handle-join-request/', data);
+    console.log("the data", response)
+    if (response) { 
+      return response;
+    } else {
+      throw new Error('Cant Join courses found'); 
+    }
+
+  } catch (error) {
+    console.error(`Error fetching Joining courses error is: ${error}`);
+  }
+};
+

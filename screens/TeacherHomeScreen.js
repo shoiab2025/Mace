@@ -14,7 +14,8 @@ import {
   Dimensions,
   StatusBar,
   Modal,
-  Alert
+  Alert,
+  Clipboard
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { fetchPublicCourses, fetchPrivateCourses, AddCourseJoin } from '../API_STORE/course_api';
@@ -24,7 +25,7 @@ import { useAuth } from '../navigation/AuthContext';
 
 const { width } = Dimensions.get('window');
 
-const HomeScreen = () => {
+const TeacherHomeScreen = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [publicCourses, setPublicCourses] = useState([]);
@@ -270,6 +271,12 @@ const HomeScreen = () => {
     navigation.navigate(screenname, { courseData: course });
   }
 
+  // Copy join code to clipboard
+  const copyJoinCode = (courseJoinCode) => {
+    Clipboard.setString(courseJoinCode);
+    Alert.alert('Copied!', 'Join code copied to clipboard');
+  };
+
   const filteredCourses = getFilteredCourses();
 
   const formatCourseData = (courses) => {
@@ -307,44 +314,42 @@ const HomeScreen = () => {
 
   const renderCourseCard = (course) => {
     const hasAccess = checkUserHasAccess(course);
-    const isPrivateWithoutAccess = course.course_type === 'private' && !hasAccess;
     
     return (
       <TouchableOpacity
         key={course.id}
-        style={[
-          styles.courseCard,
-          isPrivateWithoutAccess && styles.grayscaleCard
-        ]}
-        onPress={() => {
-          if (isPrivateWithoutAccess) {
-            Alert.alert(
-              'Access Required',
-              'You need to join this private course to access it.',
-              [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Join Course', onPress: () => handleJoinCourseOpen() }
-              ]
-            );
-          } else {
-            navigateTo('CourseDetail', course);
-          }
-        }}
+        style={styles.courseCard}
+        onPress={() => navigateTo('CourseDetail', course)}
       >
         <View style={styles.thumbnailContainer}>
           <Image
             source={{ uri: course.imageUrl }}
-            style={[
-              styles.thumbnailImage,
-              isPrivateWithoutAccess && styles.grayscaleImage
-            ]}
+            style={styles.thumbnailImage}
             resizeMode="cover"
             onError={() => {
               course.imageUrl = require('../assets/images/default.png');
             }}
           />
           
-          {/* Access Badge for Private Courses */}
+          {/* Join Code Display for Private Courses */}
+          {course  && course.join_code && (
+            <View style={styles.joinCodeContainer}>
+              <View style={styles.joinCodeBadge}>
+                <Text style={styles.joinCodeLabel}>Join Code:</Text>
+                <View style={styles.joinCodeValueContainer}>
+                  <Text style={styles.joinCodeValue}>{course.join_code}</Text>
+                  <TouchableOpacity 
+                    style={styles.copyButton}
+                    onPress={() => copyJoinCode(course.join_code)}
+                  >
+                    <Icon name="copy-outline" size={16} color="#b3b72b" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          )}
+          
+          {/* Access Status Badge */}
           {course.course_type === 'private' && (
             <View style={[
               styles.accessBadge,
@@ -363,31 +368,16 @@ const HomeScreen = () => {
 
         <View style={styles.courseInfo}>
           <View style={styles.courseHeader}>
-            <View style={[
-              styles.categoryIcon, 
-              { backgroundColor: course.color },
-              isPrivateWithoutAccess && styles.grayscaleIcon
-            ]}>
-              <Icon 
-                name={course.icon} 
-                size={16} 
-                color={isPrivateWithoutAccess ? "#888" : "#FFFFFF"} 
-              />
+            <View style={[styles.categoryIcon, { backgroundColor: course.color }]}>
+              <Icon name={course.icon} size={16} color="#FFFFFF" />
             </View>
-            <Text style={[
-              styles.courseCategory,
-              isPrivateWithoutAccess && styles.grayscaleText
-            ]}>
+            <Text style={styles.courseCategory}>
               {course.course_type}
             </Text>
           </View>
 
-          <Text style={[
-            styles.courseTitle,
-            isPrivateWithoutAccess && styles.grayscaleText
-          ]} numberOfLines={2}>
+          <Text style={styles.courseTitle} numberOfLines={2}>
             {course.title}
-            {isPrivateWithoutAccess && ' 🔒'}
           </Text>
 
           <View style={styles.creatorContainer}>
@@ -397,16 +387,12 @@ const HomeScreen = () => {
                   ? { uri: course.creatorInfo.profile_picture }
                   : require('../assets/images/creator.png')
               }
-              style={[
-                styles.creatorImage,
-                isPrivateWithoutAccess && styles.grayscaleImage
-              ]}
+              style={styles.creatorImage}
               resizeMode="cover"
             />
             <Text style={[
               styles.creatorText,
-              course.creatorInfo.isLoading && styles.creatorLoadingText,
-              isPrivateWithoutAccess && styles.grayscaleText
+              course.creatorInfo.isLoading && styles.creatorLoadingText
             ]} numberOfLines={2}>
               {course.creatorInfo.name}
             </Text>
@@ -415,12 +401,12 @@ const HomeScreen = () => {
             )}
           </View>
           
-          {/* Access Message for Private Courses */}
-          {isPrivateWithoutAccess && (
-            <View style={styles.accessMessage}>
-              <Icon name="lock-closed" size={14} color="#666" />
-              <Text style={styles.accessMessageText}>
-                Join to access this course
+          {/* Join Prompt for Private Courses without access */}
+          {course.course_type === 'private' && !hasAccess && (
+            <View style={styles.joinPrompt}>
+              <Icon name="person-add" size={14} color="#b3b72b" />
+              <Text style={styles.joinPromptText}>
+                Use the join code above to access this course
               </Text>
             </View>
           )}
@@ -538,6 +524,11 @@ const HomeScreen = () => {
                         <Text style={styles.searchResultSubtext}>
                           by {getUserDisplayInfo(course.created_by).name}
                         </Text>
+                        {course.course_type === 'private' && course.join_code && (
+                          <Text style={styles.searchResultCode}>
+                            Join Code: {course.join_code}
+                          </Text>
+                        )}
                       </TouchableOpacity>
                     ))
                   ) : (
@@ -780,7 +771,7 @@ const styles = StyleSheet.create({
   authButton: {
     padding: 6,
   },
-  // Search Modal Styles (existing)
+  // Search Modal Styles
   searchModal: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -836,6 +827,12 @@ const styles = StyleSheet.create({
   searchResultSubtext: {
     fontSize: 14,
     color: '#666',
+  },
+  searchResultCode: {
+    fontSize: 12,
+    color: '#b3b72b',
+    fontWeight: '500',
+    marginTop: 2,
   },
   noResultsText: {
     fontSize: 16,
@@ -928,25 +925,6 @@ const styles = StyleSheet.create({
     marginTop: 6,
     marginLeft: 4,
   },
-  tipsContainer: {
-    backgroundColor: '#F8F9FA',
-    padding: 16,
-    borderRadius: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: '#b3b72b',
-  },
-  tipsTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 8,
-  },
-  tip: {
-    fontSize: 13,
-    color: '#666',
-    marginBottom: 4,
-    lineHeight: 18,
-  },
   joinModalFooter: {
     flexDirection: 'row',
     padding: 20,
@@ -984,30 +962,56 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFF',
   },
-  // Grayscale Styles
-  grayscaleCard: {
-    opacity: 0.7,
-    backgroundColor: '#F8F8F8',
+  
+  // Join Code Display Styles
+  joinCodeContainer: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    right: 8,
   },
-  grayscaleImage: {
-    opacity: 0.6,
+  joinCodeBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#b3b72b',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  grayscaleIcon: {
-    backgroundColor: '#CCCCCC',
+  joinCodeLabel: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 2,
   },
-  grayscaleText: {
-    color: '#666',
+  joinCodeValueContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  joinCodeValue: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#b3b72b',
+    letterSpacing: 1,
+  },
+  copyButton: {
+    padding: 4,
   },
   
   // Access Badge Styles
   accessBadge: {
     position: 'absolute',
     top: 8,
-    left: 8,
+    right: 8,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
-    backgroundColor: 'rgba(0,0,0,0.7)',
   },
   accessGrantedBadge: {
     backgroundColor: 'rgba(76, 175, 80, 0.9)', // Green
@@ -1021,21 +1025,25 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   
-  // Access Message
-  accessMessage: {
+  // Join Prompt
+  joinPrompt: {
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 8,
-    padding: 6,
-    backgroundColor: '#F5F5F5',
+    padding: 8,
+    backgroundColor: '#F8F9FA',
     borderRadius: 6,
+    borderLeftWidth: 3,
+    borderLeftColor: '#b3b72b',
   },
-  accessMessageText: {
+  joinPromptText: {
     fontSize: 12,
-    color: '#666',
-    marginLeft: 4,
+    color: '#333',
+    marginLeft: 6,
+    fontStyle: 'italic',
   },
-  // Rest of the existing styles...
+  
+  // Course Card Styles
   tabContainer: {
     flexDirection: 'row',
     marginHorizontal: 16,
@@ -1218,4 +1226,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default HomeScreen;
+export default TeacherHomeScreen;

@@ -65,12 +65,12 @@ export const userUpdate = async ({ data }) => {
 };
 
 
-export const userSignUp = async ({ data }) => {
+export const userSignUp = async (data ) => {
   
   try {
     
+    console.log(data)
     const response = await fetchDatas('post', '/users/sign_up', data);
-
     if (response) {
       console.log('User signed up successfully:', response.message);
       return { success: true, data: response };
@@ -80,3 +80,16 @@ export const userSignUp = async ({ data }) => {
     return { success: false, error: error.response?.data?.message || error.message };
   }
 };
+
+export const getInstitutions = async () => {
+  try {
+    const response = await fetchDatas('get', '/institution/');
+    if(response)
+    {
+      return response.data
+    }
+  } catch (error) {
+    console.error('Error fetching Institution:', error.response?.data?.message || error.message);
+    return { success: false, error: error.response?.data?.message || error.message };
+  }
+}

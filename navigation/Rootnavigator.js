@@ -12,24 +12,40 @@ import {
   TouchableOpacity
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { useAuth } from './AuthContext';
 
-// Import all screens
-import LoginScreen from '../screens/LoginScreen';
-import RegisterScreen from '../screens/RegisterScreen'
-import DashboardScreen from '../screens/HomeScreen';
-import CourseDetailScreen from '../screens/CourseDetailScreen';
-import SubjectDetailScreen from '../screens/SubjectDetailScreen';
-import MaterialsScreen from '../screens/MaterialScreen';
-import LessonDetailScreen from '../screens/LessonDetailScreen';
-import TestScreen from '../screens/TestScreen';
-import TestList from '../screens/TestListScreen';
-import TestResultScreen from '../screens/TestResultScreen';
-import ComparisonScreen from '../screens/ComparisonScreen';
-import SolutionsScreen from '../screens/SolutionsScreen';
-import LeaderboardScreen from '../screens/LeaderboardScreen.';
-import ProfileScreen from '../screens/ProfileScreen';
-import EditProfileScreen from '../screens/EditProfileScreen';
-import PrivacyPolicyScreen from '../screens/PrivacyPolicyScreen';
+// Import all screens - USE LAZY LOADING FOR PERFORMANCE
+const LoginScreen = React.lazy(() => import('../screens/LoginScreen'));
+const RegisterScreen = React.lazy(() => import('../screens/RegisterScreen'));
+const DashboardScreen = React.lazy(() => import('../screens/HomeScreen'));
+const TeacherHome = React.lazy(() => import('../screens/TeacherHomeScreen'))
+const CourseDetailScreen = React.lazy(() => import('../screens/CourseDetailScreen'));
+const SubjectDetailScreen = React.lazy(() => import('../screens/SubjectDetailScreen'));
+const MaterialsScreen = React.lazy(() => import('../screens/MaterialScreen'));
+const LessonDetailScreen = React.lazy(() => import('../screens/LessonDetailScreen'));
+const TestScreen = React.lazy(() => import('../screens/TestScreen'));
+const TestList = React.lazy(() => import('../screens/TestListScreen'));
+const TestResultScreen = React.lazy(() => import('../screens/TestResultScreen'));
+const ComparisonScreen = React.lazy(() => import('../screens/ComparisonScreen'));
+const SolutionsScreen = React.lazy(() => import('../screens/SolutionsScreen'));
+const LeaderboardScreen = React.lazy(() => import('../screens/LeaderboardScreen.'));
+const ProfileScreen = React.lazy(() => import('../screens/ProfileScreen'));
+const EditProfileScreen = React.lazy(() => import('../screens/EditProfileScreen'));
+const PrivacyPolicyScreen = React.lazy(() => import('../screens/PrivacyPolicyScreen'));
+const StudentDetailScreen = React.lazy(() => import('../screens/StudentDetails'))
+// Loading component for lazy loading
+const LoadingComponent = () => (
+  <View style={styles.loadingContainer}>
+    <Text>Loading...</Text>
+  </View>
+);
+
+// Wrap lazy components with Suspense
+const withSuspense = (Component) => (props) => (
+  <React.Suspense fallback={<LoadingComponent />}>
+    <Component {...props} />
+  </React.Suspense>
+);
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -67,11 +83,11 @@ const CustomTabBar = ({ state, descriptors, navigation }) => {
           });
         };
 
-        // Get icon name based on route name
+        // Get icon name based on route name - FIXED ICON NAMES
         const getIconName = () => {
           switch (route.name) {
             case 'HomeTab':
-              return isFocused ? 'library' : 'library-outline';
+              return isFocused ? 'home' : 'home-outline'; // Changed from library to home
             case 'TestsTab':
               return isFocused ? 'document-text' : 'document-text-outline';
             case 'ProfileTab':
@@ -94,7 +110,7 @@ const CustomTabBar = ({ state, descriptors, navigation }) => {
           >
             <Icon 
               name={getIconName()} 
-              size={24} 
+              size={20} 
               color={isFocused ? '#b3b72b' : '#666'} 
             />
             <Text style={[
@@ -110,18 +126,18 @@ const CustomTabBar = ({ state, descriptors, navigation }) => {
   );
 };
 
-// Home Stack Navigator
+// Home Stack Navigator - FIXED DUPLICATE SCREENS
 const HomeStack = () => {
   return (
     <Stack.Navigator>
       <Stack.Screen 
         name="Dashboard" 
-        component={DashboardScreen}
+        component={withSuspense(DashboardScreen)}
         options={{ headerShown: false }}
       />
       <Stack.Screen 
         name="CourseDetail" 
-        component={CourseDetailScreen}
+        component={withSuspense(CourseDetailScreen)}
         options={{ 
           title: 'Course Details',
           headerShown: true,
@@ -129,7 +145,7 @@ const HomeStack = () => {
       />
       <Stack.Screen 
         name="SubjectDetail" 
-        component={SubjectDetailScreen}
+        component={withSuspense(SubjectDetailScreen)}
         options={{ 
           title: 'Subject Details',
           headerShown: true,
@@ -137,7 +153,7 @@ const HomeStack = () => {
       />
       <Stack.Screen 
         name="Materials" 
-        component={MaterialsScreen}
+        component={withSuspense(MaterialsScreen)}
         options={{ 
           title: 'Learning Materials',
           headerShown: true,
@@ -145,7 +161,50 @@ const HomeStack = () => {
       />
       <Stack.Screen 
         name="LessonDetail" 
-        component={LessonDetailScreen}
+        component={withSuspense(LessonDetailScreen)}
+        options={{ 
+          title: 'Lesson Details',
+          headerShown: true,
+        }}
+      />
+    </Stack.Navigator>
+  );
+};
+const TeacherHomeStack = () => {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen 
+        name="Dashboard" 
+        component={withSuspense(TeacherHome)}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen 
+        name="CourseDetail" 
+        component={withSuspense(CourseDetailScreen)}
+        options={{ 
+          title: 'Course Details',
+          headerShown: true,
+        }}
+      />
+      <Stack.Screen 
+        name="SubjectDetail" 
+        component={withSuspense(SubjectDetailScreen)}
+        options={{ 
+          title: 'Subject Details',
+          headerShown: true,
+        }}
+      />
+      <Stack.Screen 
+        name="Materials" 
+        component={withSuspense(MaterialsScreen)}
+        options={{ 
+          title: 'Learning Materials',
+          headerShown: true,
+        }}
+      />
+      <Stack.Screen 
+        name="LessonDetail" 
+        component={withSuspense(LessonDetailScreen)}
         options={{ 
           title: 'Lesson Details',
           headerShown: true,
@@ -155,68 +214,28 @@ const HomeStack = () => {
   );
 };
 
-// Courses Stack Navigator
-const CoursesStack = () => {
-  return (
-    <Stack.Navigator>
-      <Stack.Screen 
-        name="CoursesMain" 
-        component={CourseDetailScreen}
-        options={{ 
-          title: 'My Courses',
-          headerShown: true,
-        }}
-      />
-      <Stack.Screen 
-        name="CourseDetail" 
-        component={CourseDetailScreen}
-        options={{ 
-          title: 'Course Details',
-          headerShown: true,
-        }}
-      />
-      <Stack.Screen 
-        name="SubjectDetail" 
-        component={SubjectDetailScreen}
-        options={{ 
-          title: 'Subject Details',
-          headerShown: true,
-        }}
-      />
-      <Stack.Screen 
-        name="Materials" 
-        component={MaterialsScreen}
-        options={{ 
-          title: 'Learning Materials',
-          headerShown: true,
-        }}
-      />
-    </Stack.Navigator>
-  );
-};
-
-// Tests Stack Navigator
+// Tests Stack Navigator - FIXED INITIAL ROUTE
 const TestsStack = () => {
   return (
     <Stack.Navigator>
       <Stack.Screen 
         name="TestsMain" 
-        component={TestList}
+        component={withSuspense(TestList)}
         options={{
           headerShown: false,
         }}
       />
       <Stack.Screen 
         name="TestSession" 
-        component={TestScreen}
+        component={withSuspense(TestScreen)}
         options={{ 
-          title: 'Test Screen',
+          title: 'Test',
           headerShown: true,
         }}
       />
       <Stack.Screen 
         name="TestResult" 
-        component={TestResultScreen}
+        component={withSuspense(TestResultScreen)}
         options={{ 
           title: 'Test Results',
           headerShown: true,
@@ -224,7 +243,7 @@ const TestsStack = () => {
       />
       <Stack.Screen 
         name="Comparison" 
-        component={ComparisonScreen}
+        component={withSuspense(ComparisonScreen)}
         options={{ 
           title: 'Score Comparison',
           headerShown: true,
@@ -232,7 +251,7 @@ const TestsStack = () => {
       />
       <Stack.Screen 
         name="Solutions" 
-        component={SolutionsScreen}
+        component={withSuspense(SolutionsScreen)}
         options={{ 
           title: 'Solutions',
           headerShown: true,
@@ -240,7 +259,7 @@ const TestsStack = () => {
       />
       <Stack.Screen 
         name="Leaderboard" 
-        component={LeaderboardScreen}
+        component={withSuspense(LeaderboardScreen)}
         options={{ 
           title: 'Leaderboard',
           headerShown: true,
@@ -255,9 +274,8 @@ const ProfileStack = () => {
   return (
     <Stack.Navigator>
       <Stack.Screen 
-
         name="ProfileMain" 
-        component={ProfileScreen}
+        component={withSuspense(ProfileScreen)}
         options={{ 
           title: 'My Profile',
           headerShown: false,
@@ -265,7 +283,7 @@ const ProfileStack = () => {
       />
       <Stack.Screen 
         name="EditProfile" 
-        component={EditProfileScreen}
+        component={withSuspense(EditProfileScreen)}
         options={{ 
           title: 'Edit Profile',
           headerShown: true,
@@ -273,7 +291,7 @@ const ProfileStack = () => {
       />
       <Stack.Screen 
         name="PrivacyPolicy" 
-        component={PrivacyPolicyScreen}
+        component={withSuspense(PrivacyPolicyScreen)}
         options={{ 
           title: 'Privacy Policy',
           headerShown: true,
@@ -319,12 +337,51 @@ const TabNavigator = () => {
     </Tab.Navigator>
   );
 };
+const TeacherTabNavigator = () => {
+  return (
+    <Tab.Navigator
+      tabBar={props => <CustomTabBar {...props} />}
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
+      <Tab.Screen 
+        name="HomeTab" 
+        component={TeacherHomeStack}
+        options={{
+          tabBarLabel: 'Courses',
+          title: 'Home',
+        }}
+      />
+      <Tab.Screen 
+        name="TestsTab" 
+        component={StudentDetailScreen}
+        options={{
+          tabBarLabel: 'Students',
+          title: 'Students',
+        }}
+      />
+      <Tab.Screen 
+        name="ProfileTab" 
+        component={ProfileStack}
+        options={{
+          tabBarLabel: 'Profile',
+          title: 'Profile',
+        }}
+      />
+    </Tab.Navigator>
+  );
+};
 
-// Main Stack Navigator
+// Main Stack Navigator - FIXED INITIAL ROUTE LOGIC
 const MainStack = () => {
+  // In a real app, you'd check authentication status here
+  const isAuthenticated = false; // Change this based on your auth logic
+  const {authUser} = useAuth();
+
   return (
     <Stack.Navigator 
-      initialRouteName="MainTabs"
+      initialRouteName={"MainTabs"}
       screenOptions={{
         headerStyle: {
           backgroundColor: '#b3b72b',
@@ -338,17 +395,22 @@ const MainStack = () => {
     >
       <Stack.Screen 
         name="Login" 
-        component={LoginScreen}
+        component={withSuspense(LoginScreen)}
         options={{ headerShown: false }}
       />
       <Stack.Screen 
         name="Register" 
-        component={RegisterScreen}
+        component={withSuspense(RegisterScreen)}
         options={{ headerShown: false }}
       />
       <Stack.Screen 
         name="MainTabs" 
         component={TabNavigator}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen 
+        name="TeacherTabs" 
+        component={TeacherTabNavigator}
         options={{ headerShown: false }}
       />
     </Stack.Navigator>
@@ -398,21 +460,26 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
+    paddingVertical: 5,
     borderRadius: 8,
   },
   activeTabItem: {
     backgroundColor: '#f8f9fa',
   },
   tabLabel: {
-    fontSize: 12,
-    marginTop: 4,
+    fontSize: 10,
+    marginTop: 2,
     color: '#666',
     fontWeight: '500',
   },
   activeTabLabel: {
     color: '#b3b72b',
     fontWeight: '600',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 

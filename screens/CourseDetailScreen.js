@@ -97,7 +97,7 @@ const CourseDetailScreen = ({ navigation, route }) => {
                 onPress={() => navigation.navigate('SubjectDetail', { subjectData: subject, courseDetail: courseData })}
               >
                 <View style={[styles.subjectIcon, { backgroundColor: '#fff' }]}>
-                  <Icon name='book' size={40} color="#b3b72b" />
+                  <Icon name='book' size={30} color="#b3b72b" />
                 </View>
                 <Text style={styles.subjectName}>{subject.name}</Text>
               </TouchableOpacity>
@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
     right: 16,
   },
   courseTitle: {
-    fontSize: 28,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#FFFFFF',
     marginBottom: 8,
@@ -262,7 +262,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#b3b72b',
   },
   badgeText: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: 'bold',
     color: '#FFFFFF',
     textTransform: 'capitalize'
@@ -324,8 +324,8 @@ const styles = StyleSheet.create({
     width: '48%',
     backgroundColor: '#b3b72b',
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    padding: 10,
+    marginBottom: 10,
     borderWidth: 1,
     borderColor: '#F0F0F0',
     shadowColor: '#000',
@@ -336,8 +336,8 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   subjectIcon: {
-    width: 60,
-    height: 60,
+    width: 50,
+    height: 50,
     borderRadius: 50,
     flexDirection: 'row',
     justifyContent: 'center',
@@ -345,7 +345,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   subjectName: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#ffffffff',
     marginBottom: 8,
@@ -392,7 +392,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statNumber: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#333',
     marginVertical: 4,
