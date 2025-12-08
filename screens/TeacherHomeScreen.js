@@ -18,7 +18,7 @@ import {
   Clipboard
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { fetchPublicCourses, fetchPrivateCourses, AddCourseJoin } from '../API_STORE/course_api';
+import { fetchPublicCourses, fetchPrivateCourses, AddCourseJoin, fetchPrivateTeacherCourses } from '../API_STORE/course_api';
 import { fetchUserById } from '../API_STORE/user_api';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../navigation/AuthContext';
@@ -66,7 +66,7 @@ const TeacherHomeScreen = () => {
 
       const [pbCourses, pvCourses] = await Promise.all([
         fetchPublicCourses(),
-        fetchPrivateCourses()
+        fetchPrivateTeacherCourses(authUser)
       ]);
 
       setPublicCourses(pbCourses || []);

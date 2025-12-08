@@ -48,11 +48,11 @@ export const userLogout = async () => {
 };
 
 
-export const userUpdate = async ({ data }) => {
+export const userUpdate = async (userId, data) => {
   
   try {
     
-    const response = await fetchDatas('put', `/users/${data.id}`, data);
+    const response = await fetchDatas('put', `/users/${userId}`, data);
 
     if (response) {
       console.log('User updated successfully:', response.message);

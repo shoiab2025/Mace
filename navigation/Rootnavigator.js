@@ -18,7 +18,7 @@ import { useAuth } from './AuthContext';
 const LoginScreen = React.lazy(() => import('../screens/LoginScreen'));
 const RegisterScreen = React.lazy(() => import('../screens/RegisterScreen'));
 const DashboardScreen = React.lazy(() => import('../screens/HomeScreen'));
-const TeacherHome = React.lazy(() => import('../screens/TeacherHomeScreen'))
+const TeacherHomeScreen = React.lazy(() => import('../screens/TeacherHomeScreen'))
 const CourseDetailScreen = React.lazy(() => import('../screens/CourseDetailScreen'));
 const SubjectDetailScreen = React.lazy(() => import('../screens/SubjectDetailScreen'));
 const MaterialsScreen = React.lazy(() => import('../screens/MaterialScreen'));
@@ -175,7 +175,7 @@ const TeacherHomeStack = () => {
     <Stack.Navigator>
       <Stack.Screen 
         name="Dashboard" 
-        component={withSuspense(TeacherHome)}
+        component={withSuspense(TeacherHomeScreen)}
         options={{ headerShown: false }}
       />
       <Stack.Screen 

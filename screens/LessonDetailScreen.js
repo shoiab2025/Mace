@@ -13,6 +13,7 @@ import {
   ActivityIndicator,
   StatusBar,
 } from 'react-native';
+import RenderHTML from 'react-native-render-html';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Video from 'react-native-video';
 import { WebView } from 'react-native-webview';
@@ -597,8 +598,18 @@ const LessonDetailScreen = ({ navigation, route }) => {
 
         {/* Description */}
         <View style={styles.descriptionSection}>
-          <Text style={styles.descriptionTitle}>About This {isVideo ? 'Video' : isPDF ? 'Document' : 'Material'}</Text>
-          <Text style={styles.descriptionText}>{material?.description || lessonData.description}</Text>
+          <Text style={styles.descriptionTitle}> {material?.name} - {isVideo ? 'Poem' : isPDF ? 'Document' : 'Material'}</Text>
+          <RenderHTML
+            source={{html: material.description}}
+            baseStyle={{
+              objectFit:'cover',
+              width: '100%',
+              paddingVertical:10,
+              alignContent: 'center',
+              justifyContent: 'center'
+            }}
+            contentWidth={300}
+          />
         </View>
 
         <View style={styles.bottomSpacer} />
@@ -844,7 +855,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: '#333',
-    marginBottom: 8,
+    marginBottom: 5,
   },
   descriptionText: {
     fontSize: 14,
