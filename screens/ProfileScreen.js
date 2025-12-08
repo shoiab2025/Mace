@@ -107,7 +107,7 @@ const ProfileScreen = ({ navigation }) => {
   };
 
   const handleContactSupport = () => {
-    Linking.openURL('mailto:support@macapp.com');
+    Linking.openURL('mailto:betertechnosolutions@gmail.com');
   };
 
   const handleRateApp = () => {
