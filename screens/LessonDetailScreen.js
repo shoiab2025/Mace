@@ -387,7 +387,7 @@ const LessonDetailScreen = ({ navigation, route }) => {
       );
     } else if (isPDF) {
       return (
-        <View style={[styles.mediaContainer, {height: 800}]}>
+        <View style={[styles.mediaContainer1, {height: '800', maxHeight: 800}]}>
           {isLoading && (
             <View style={styles.loadingOverlay}>
               <ActivityIndicator size="large" color="#b3b72b" />
@@ -417,7 +417,17 @@ const LessonDetailScreen = ({ navigation, route }) => {
                 onLoad={onWebViewLoad}
                 onError={onWebViewError}
                 startInLoadingState={true}
+                scrollEnabled={true}
                 scalesPageToFit={true}
+                showsHorizontalScrollIndicator={true}
+                showsVerticalScrollIndicator={true}
+                bounces={true} // iOS bounce effect
+                overScrollMode="always" // Android overscroll
+                nestedScrollEnabled={true} // For nested scrolling
+                javaScriptEnabled={true} // Enable JavaScript for better rendering
+                domStorageEnabled={true} // Enable DOM storage
+                setBuiltInZoomControls={true} // Enable zoom controls
+                setDisplayZoomControls={false} // Hide built-in zoom controls
               />
             </View>
           )}
@@ -592,25 +602,29 @@ const LessonDetailScreen = ({ navigation, route }) => {
         scrollEventThrottle={16}
       >
         {/* Media Player Section */}
-        <View style={styles.mediaSection}>
+        <View style={[isVideo ? styles.mediaSection : styles.mediaSection1]}>
           {renderMediaPlayer()}
         </View>
 
         {/* Description */}
-        <View style={styles.descriptionSection}>
-          <Text style={styles.descriptionTitle}> {material?.name} - {isVideo ? 'Poem' : isPDF ? 'Document' : 'Material'}</Text>
-          <RenderHTML
-            source={{html: material.description}}
-            baseStyle={{
-              objectFit:'cover',
-              width: '100%',
-              paddingVertical:10,
-              alignContent: 'center',
-              justifyContent: 'center'
-            }}
-            contentWidth={300}
-          />
-        </View>
+       {
+        isVideo && (
+           <View style={styles.descriptionSection}>
+            <Text style={styles.descriptionTitle}> {material?.name} - {isVideo ? 'Poem' : isPDF ? 'Document' : 'Material'}</Text>
+            <RenderHTML
+              source={{html: material.description}}
+              baseStyle={{
+                objectFit:'cover',
+                width: '100%',
+                paddingVertical:10,
+                alignContent: 'center',
+                justifyContent: 'center'
+              }}
+              contentWidth={300}
+            />
+          </View>
+        )
+       }
 
         <View style={styles.bottomSpacer} />
       </ScrollView>
@@ -677,6 +691,9 @@ const styles = StyleSheet.create({
   mediaSection: {
     padding: 20,
   },
+  mediaSection1: {
+    padding: 0,
+  },
   mediaContainer: {
     borderRadius: 16,
     overflow: 'hidden',
@@ -687,6 +704,12 @@ const styles = StyleSheet.create({
     elevation: 8,
     backgroundColor: '#000',
     height: 250,
+  },
+  mediaContainer1: {
+    overflow: 'hidden',
+    backgroundColor: '#000',
+    height: 250,
+    width: '100%'
   },
   fullScreenContainer: {
     position: 'absolute',
@@ -713,9 +736,11 @@ const styles = StyleSheet.create({
   },
   webviewContainer: {
     flex: 1,
+    padding: 0
   },
   webview: {
     flex: 1,
+    margin: 0
   },
   videoControls: {
     position: 'absolute',
