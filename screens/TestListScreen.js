@@ -254,6 +254,7 @@ const TestListScreen = () => {
 
   const displayTests = formatTestData(filteredTests);
 
+
   const renderTestCard = (test) => (
     <TouchableOpacity
       key={test.id}
@@ -343,7 +344,17 @@ const TestListScreen = () => {
             
             <TouchableOpacity 
               style={styles.takeTestButton}
-              onPress={() => navigation.navigate('TestSession', { testData: test })}
+              onPress={() => {
+                if(authUser) {
+                  navigation.navigate('TestSession', { testData: test })
+                }
+                else {
+                 Alert.alert(
+                  "Login Required",
+                  "You need to login to take the test."
+                );
+                }
+              }}
             >
               <Text style={styles.takeTestButtonText}>Take Test</Text>
               <Icon name="arrow-forward" size={16} color="#FFFFFF" />

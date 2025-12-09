@@ -47,23 +47,26 @@ export const fetchPrivateCourses = async () => {
 
 export const fetchPrivateTeacherCourses = async (authUser) => {
   try {
-    const courses = await fetchDatas('get', '/courses/');
-    if (!courses || courses.length === 0 || !authUser || authUser?.role?.toLowerCase() !== 'teacher') {
+    const courses = await fetchDatas('get', '/courses/');    
+    if (!courses || courses.length === 0) {
+      console.log('No courses found');
       return [];
     }
+
     const teacherPrivateCourses = courses.filter((course) => {
       if (course.course_type !== "private") return false;
-      const isCreator = course.created_by === authUser._id;
-      const hasInstitutionAccess = authUser?.institution?.course_access?.includes(course?._id);
+      const createdById = typeof course.created_by === 'object' 
+        ? course.created_by._id 
+        : course.created_by;
       
-      return isCreator || hasInstitutionAccess;
+      return createdById === authUser._id;
     });
     
     console.log(`Teacher private courses found: ${teacherPrivateCourses.length}`);
     return teacherPrivateCourses;
 
   } catch (error) {
-    console.error(`Error fetching private teacher courses: ${error}`);
+    console.error(`Error fetching private teacher courses: ${error.message || error}`);
     return [];
   }
 };

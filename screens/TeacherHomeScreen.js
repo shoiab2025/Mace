@@ -15,7 +15,8 @@ import {
   StatusBar,
   Modal,
   Alert,
-  Clipboard
+  Clipboard,
+  Linking
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { fetchPublicCourses, fetchPrivateCourses, AddCourseJoin, fetchPrivateTeacherCourses } from '../API_STORE/course_api';
@@ -29,10 +30,11 @@ const TeacherHomeScreen = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [publicCourses, setPublicCourses] = useState([]);
+  const [teacherCourses, setTeacherCourses] = useState([]);
   const [privateCourses, setPrivateCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState('public');
+  const [activeTab, setActiveTab] = useState('public'); // public, private, teacher
   const [creators, setCreators] = useState({});
   const [loadingCreators, setLoadingCreators] = useState({});
   const [isSearchVisible, setIsSearchVisible] = useState(false);
@@ -64,15 +66,25 @@ const TeacherHomeScreen = () => {
       setError('');
       setLoading(true);
 
-      const [pbCourses, pvCourses] = await Promise.all([
+      const [pbCourses, pvCourses, teacherCoursesData] = await Promise.all([
         fetchPublicCourses(),
+        fetchPrivateCourses(),
         fetchPrivateTeacherCourses(authUser)
       ]);
 
       setPublicCourses(pbCourses || []);
       setPrivateCourses(pvCourses || []);
+      setTeacherCourses(teacherCoursesData || []);
 
-      await loadCreators([...(pbCourses || []), ...(pvCourses || [])]);
+      console.log("the teacher course for teacher home", teacherCoursesData)
+
+      // Load creators for all courses
+      const allCourses = [
+        ...(pbCourses || []),
+        ...(pvCourses || []),
+        ...(teacherCoursesData || [])
+      ];
+      await loadCreators(allCourses);
     } catch (err) {
       setError('Failed to load courses');
       console.error('Error loading courses:', err);
@@ -168,8 +180,18 @@ const TeacherHomeScreen = () => {
     }).start();
   }, [isJoinCourseVisible]);
 
+  // Get current courses based on active tab
   const getCurrentCourses = () => {
-    return activeTab === 'public' ? publicCourses : privateCourses;
+    switch (activeTab) {
+      case 'public':
+        return publicCourses;
+      case 'private':
+        return privateCourses;
+      case 'teacher':
+        return teacherCourses;
+      default:
+        return [];
+    }
   };
 
   const getFilteredCourses = () => {
@@ -310,10 +332,30 @@ const TeacherHomeScreen = () => {
     return icons[category?.toLowerCase()] || 'school';
   };
 
+  const getTabTitle = () => {
+    switch (activeTab) {
+      case 'public': return 'Public Courses';
+      case 'private': return 'Private Courses';
+      case 'teacher': return 'My Courses';
+      default: return 'Courses';
+    }
+  };
+
+  const getTabCount = () => {
+    switch (activeTab) {
+      case 'public': return publicCourses.length;
+      case 'private': return privateCourses.length;
+      case 'teacher': return teacherCourses.length;
+      default: return 0;
+    }
+  };
+
   const displayCourses = formatCourseData(filteredCourses);
 
+  // Render course card with different styles based on tab
   const renderCourseCard = (course) => {
     const hasAccess = checkUserHasAccess(course);
+    const isTeacherCourse = activeTab === 'teacher';
     
     return (
       <TouchableOpacity
@@ -331,8 +373,8 @@ const TeacherHomeScreen = () => {
             }}
           />
           
-          {/* Join Code Display for Private Courses */}
-          {course  && course.join_code && (
+          {/* Join Code Display for Teacher's Private Courses */}
+          {isTeacherCourse && course.course_type === 'private' && course.join_code && (
             <View style={styles.joinCodeContainer}>
               <View style={styles.joinCodeBadge}>
                 <Text style={styles.joinCodeLabel}>Join Code:</Text>
@@ -349,8 +391,8 @@ const TeacherHomeScreen = () => {
             </View>
           )}
           
-          {/* Access Status Badge */}
-          {course.course_type === 'private' && (
+          {/* Access Status Badge for Private Courses */}
+          {course.course_type === 'private' && !isTeacherCourse && (
             <View style={[
               styles.accessBadge,
               hasAccess ? styles.accessGrantedBadge : styles.accessRequiredBadge
@@ -358,6 +400,14 @@ const TeacherHomeScreen = () => {
               <Text style={styles.accessBadgeText}>
                 {hasAccess ? '✓ Joined' : 'Private'}
               </Text>
+            </View>
+          )}
+          
+          {/* Teacher Badge for Teacher Courses */}
+          {isTeacherCourse && (
+            <View style={styles.teacherBadge}>
+              <Icon name="person" size={12} color="#FFFFFF" />
+              <Text style={styles.teacherBadgeText}>My Course</Text>
             </View>
           )}
           
@@ -372,7 +422,7 @@ const TeacherHomeScreen = () => {
               <Icon name={course.icon} size={16} color="#FFFFFF" />
             </View>
             <Text style={styles.courseCategory}>
-              {course.course_type}
+              {course.course_type} • {activeTab === 'teacher' ? 'Teacher' : 'Student'}
             </Text>
           </View>
 
@@ -395,6 +445,7 @@ const TeacherHomeScreen = () => {
               course.creatorInfo.isLoading && styles.creatorLoadingText
             ]} numberOfLines={2}>
               {course.creatorInfo.name}
+              {isTeacherCourse && " (You)"}
             </Text>
             {course.creatorInfo.isLoading && (
               <ActivityIndicator size="small" color="#666" style={styles.creatorLoader} />
@@ -402,11 +453,11 @@ const TeacherHomeScreen = () => {
           </View>
           
           {/* Join Prompt for Private Courses without access */}
-          {course.course_type === 'private' && !hasAccess && (
+          {course.course_type === 'private' && !hasAccess && !isTeacherCourse && (
             <View style={styles.joinPrompt}>
               <Icon name="person-add" size={14} color="#b3b72b" />
               <Text style={styles.joinPromptText}>
-                Use the join code above to access this course
+                Use join code to access
               </Text>
             </View>
           )}
@@ -445,6 +496,8 @@ const TeacherHomeScreen = () => {
 
         {/* Right: Actions */}
         <View style={styles.actionsContainer}>
+          {/* Create Course Button (only for teacher tab) */}
+
           {/* Join Course Button */}
           <TouchableOpacity 
             style={styles.joinButton}
@@ -520,7 +573,17 @@ const TeacherHomeScreen = () => {
                           handleSearchClose();
                         }}
                       >
-                        <Text style={styles.searchResultText}>{course.title || course.name}</Text>
+                        <View style={styles.searchResultItemHeader}>
+                          <Text style={styles.searchResultText}>{course.title || course.name}</Text>
+                          <View style={[
+                            styles.courseTypeBadge,
+                            course.course_type === 'private' ? styles.privateBadge : styles.publicBadge
+                          ]}>
+                            <Text style={styles.courseTypeText}>
+                              {course.course_type === 'private' ? 'Private' : 'Public'}
+                            </Text>
+                          </View>
+                        </View>
                         <Text style={styles.searchResultSubtext}>
                           by {getUserDisplayInfo(course.created_by).name}
                         </Text>
@@ -632,7 +695,7 @@ const TeacherHomeScreen = () => {
 
       {/* Main Content */}
       <View style={styles.content}>
-        {/* Course Type Tabs */}
+        {/* Course Type Tabs - Now with 3 tabs */}
         <View style={styles.tabContainer}>
           <TouchableOpacity
             style={[styles.tab, activeTab === 'public' && styles.activeTab]}
@@ -648,6 +711,14 @@ const TeacherHomeScreen = () => {
           >
             <Text style={[styles.tabText, activeTab === 'private' && styles.activeTabText]}>
               Private ({privateCourses.length})
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'teacher' && styles.activeTab]}
+            onPress={() => setActiveTab('teacher')}
+          >
+            <Text style={[styles.tabText, activeTab === 'teacher' && styles.activeTabText]}>
+              My Courses ({teacherCourses.length})
             </Text>
           </TouchableOpacity>
         </View>
@@ -688,17 +759,48 @@ const TeacherHomeScreen = () => {
           {!loading && !error && (
             <View style={styles.coursesSection}>
               <Text style={styles.sectionTitle}>
-                {activeTab === 'public' ? 'Public Courses' : 'Private Courses'}
-                ({displayCourses.length})
+                {getTabTitle()} ({displayCourses.length})
               </Text>
 
               {displayCourses.length > 0 ? (
                 displayCourses.map(renderCourseCard)
               ) : (
                 <View style={styles.emptyState}>
-                  <Text style={styles.emptyStateText}>
-                    {searchQuery ? 'No courses found matching your search.' : 'No courses available.'}
-                  </Text>
+                  {activeTab === 'teacher' ? (
+                    <>
+                      <Icon name="book-outline" size={60} color="#ccc" />
+                      <Text style={styles.emptyStateTitle}>No Courses Created Yet</Text>
+                      <Text style={styles.emptyStateText}>
+                        Create your first course to start teaching
+                      </Text>
+                      <TouchableOpacity 
+                        style={styles.ctaButton}
+                         onPress={() => Linking.openURL('https://www.nexgen-e.com/home')}
+                      >
+                        <Text style={styles.ctaButtonText}>Create Your First Course</Text>
+                      </TouchableOpacity>
+                    </>
+                  ) : (
+                    <>
+                      <Icon name="school-outline" size={60} color="#ccc" />
+                      <Text style={styles.emptyStateTitle}>
+                        {activeTab === 'public' ? 'No Public Courses' : 'No Private Courses'}
+                      </Text>
+                      <Text style={styles.emptyStateText}>
+                        {searchQuery 
+                          ? 'No courses found matching your search.' 
+                          : 'No courses available in this category.'}
+                      </Text>
+                      {activeTab === 'private' && (
+                        <TouchableOpacity 
+                          style={styles.ctaButton}
+                          onPress={handleJoinCourseOpen}
+                        >
+                          <Text style={styles.ctaButtonText}>Join a Private Course</Text>
+                        </TouchableOpacity>
+                      )}
+                    </>
+                  )}
                 </View>
               )}
             </View>
@@ -749,12 +851,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
+  createButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#b3b72b',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 6,
+    shadowColor: '#b3b72b',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  createButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
   joinButton: {
     backgroundColor: '#b3b72b',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    shadowColor: '#b3b72b',
+    shadowColor: '#4ECDC4',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -818,11 +939,38 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#F0F0F0',
   },
+  searchResultItemHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 4,
+  },
   searchResultText: {
     fontSize: 16,
     color: '#333',
     fontWeight: '500',
-    marginBottom: 4,
+    flex: 1,
+    marginRight: 8,
+  },
+  courseTypeBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  privateBadge: {
+    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+    borderWidth: 1,
+    borderColor: '#FF6B6B',
+  },
+  publicBadge: {
+    backgroundColor: 'rgba(78, 205, 196, 0.1)',
+    borderWidth: 1,
+    borderColor: '#4ECDC4',
+  },
+  courseTypeText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#333',
   },
   searchResultSubtext: {
     fontSize: 14,
@@ -963,6 +1111,40 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   
+  // Tab Styles - Updated for 3 tabs
+  tabContainer: {
+    flexDirection: 'row',
+    marginHorizontal: 16,
+    marginVertical: 16,
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+    padding: 4,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderRadius: 8,
+  },
+  activeTab: {
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  tabText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#666',
+    textAlign: 'center',
+  },
+  activeTabText: {
+    color: '#b3b72b',
+    fontWeight: 'bold',
+  },
+  
   // Join Code Display Styles
   joinCodeContainer: {
     position: 'absolute',
@@ -1025,6 +1207,41 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   
+  // Teacher Badge
+  teacherBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(179, 183, 43, 0.9)', // Green
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    gap: 4,
+  },
+  teacherBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  
+  // Duration Badge
+  durationBadge: {
+    position: 'absolute',
+    bottom: 8,
+    right: 8,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  durationText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  
   // Join Prompt
   joinPrompt: {
     flexDirection: 'row',
@@ -1043,38 +1260,59 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   
-  // Course Card Styles
-  tabContainer: {
+  // Teacher Actions
+  teacherActions: {
     flexDirection: 'row',
-    marginHorizontal: 16,
-    marginVertical: 16,
-    backgroundColor: '#F5F5F5',
-    borderRadius: 12,
-    padding: 4,
+    justifyContent: 'space-between',
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
   },
-  tab: {
-    flex: 1,
-    paddingVertical: 12,
+  editButton: {
+    flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 8,
+    backgroundColor: '#E3F2FD',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+    gap: 4,
   },
-  activeTab: {
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  tabText: {
-    fontSize: 14,
+  editButtonText: {
+    fontSize: 12,
+    color: '#1976D2',
     fontWeight: '500',
-    color: '#666',
   },
-  activeTabText: {
-    color: '#b3b72b',
-    fontWeight: 'bold',
+  statsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8F5E9',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+    gap: 4,
   },
+  statsButtonText: {
+    fontSize: 12,
+    color: '#388E3C',
+    fontWeight: '500',
+  },
+  studentsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF3E0',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+    gap: 4,
+  },
+  studentsButtonText: {
+    fontSize: 12,
+    color: '#F57C00',
+    fontWeight: '500',
+  },
+  
+  // Course Card Styles
   scrollView: {
     flex: 1,
   },
@@ -1145,20 +1383,6 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  durationBadge: {
-    position: 'absolute',
-    bottom: 8,
-    right: 8,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  durationText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '500',
-  },
   courseInfo: {
     padding: 12,
   },
@@ -1215,11 +1439,31 @@ const styles = StyleSheet.create({
   emptyState: {
     alignItems: 'center',
     padding: 40,
+    gap: 16,
+  },
+  emptyStateTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    textAlign: 'center',
   },
   emptyStateText: {
     fontSize: 16,
     color: '#666',
     textAlign: 'center',
+    lineHeight: 22,
+  },
+  ctaButton: {
+    backgroundColor: '#b3b72b',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 16,
+  },
+  ctaButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
   bottomSpacer: {
     height: 20,

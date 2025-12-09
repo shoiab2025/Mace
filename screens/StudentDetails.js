@@ -1211,10 +1211,6 @@ const StudentDetailScreen = () => {
             <Text style={styles.joinButtonText}>Join Course</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={handleSearchOpen} style={styles.searchIconButton}>
-            <Icon name="search" size={22} color="#666" />
-          </TouchableOpacity>
-
           <TouchableOpacity onPress={handleAuthAction} style={styles.authButton}>
             <Icon 
               name={authUser ? "log-out-outline" : "log-in-outline"} 

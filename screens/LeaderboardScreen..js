@@ -19,7 +19,7 @@ const LeaderboardScreen = ({ navigation, route }) => {
   const [leaderboardData, setLeaderboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  
+
   // Get testId from navigation params
   const testId = route.params?.testId;
   const testName = route.params?.testName || 'Test Leaderboard';
@@ -36,7 +36,7 @@ const LeaderboardScreen = ({ navigation, route }) => {
       }
 
       const response = await fetchLeaderBoardForTest(testId);
-      
+
       if (response && response.rankings) {
         // Transform the API data to match our UI structure
         const transformedData = transformLeaderboardData(response);
@@ -56,7 +56,7 @@ const LeaderboardScreen = ({ navigation, route }) => {
   const transformLeaderboardData = (apiData) => {
     // Sort rankings by score (descending) and add ranks
     const sortedRankings = [...apiData.rankings].sort((a, b) => (b.score || 0) - (a.score || 0));
-    
+
     const rankedData = sortedRankings.map((item, index) => ({
       ...item,
       rank: index + 1,
@@ -71,12 +71,12 @@ const LeaderboardScreen = ({ navigation, route }) => {
     const scores = rankedData.map(item => item.score || 0);
     const totalParticipants = rankedData.length;
     const highestScore = totalParticipants > 0 ? Math.max(...scores) : 0;
-    const averageScore = totalParticipants > 0 
+    const averageScore = totalParticipants > 0
       ? Math.round(scores.reduce((sum, score) => sum + score, 0) / totalParticipants)
       : 0;
 
     // Find current user's position
-    const currentUserRanking = rankedData.find(item => 
+    const currentUserRanking = rankedData.find(item =>
       item.user?._id === authUser?._id
     );
 
@@ -107,13 +107,13 @@ const LeaderboardScreen = ({ navigation, route }) => {
 
   const renderLeaderboardItem = ({ item, index }) => {
     const isCurrentUser = item.user?._id === authUser?._id;
-    
+
     return (
       <View style={[
         styles.leaderboardItem,
         isCurrentUser && styles.currentUserItem,
         item.rank <= 3 && styles.podiumItem
-      ]}>
+      ]} key={index}>
         <View style={styles.rankContainer}>
           <View style={[
             styles.rankBadge,
@@ -129,7 +129,7 @@ const LeaderboardScreen = ({ navigation, route }) => {
             </Text>
           </View>
         </View>
-        
+
         <View style={styles.studentInfo}>
           <Text style={[
             styles.studentName,
@@ -142,7 +142,7 @@ const LeaderboardScreen = ({ navigation, route }) => {
             Score: {item.score || 0}
           </Text>
         </View>
-        
+
         <View style={styles.scoreContainer}>
           <Text style={styles.score}>{item.score || 0}</Text>
           <Text style={styles.scoreLabel}>Points</Text>
@@ -153,40 +153,125 @@ const LeaderboardScreen = ({ navigation, route }) => {
 
   const renderPodium = () => {
     const topThree = leaderboardData.rankings.filter(item => item.rank <= 3);
-    
+
     if (topThree.length === 0) return null;
+
+    // Sort for podium display: 1st in middle, 2nd left, 3rd right
+    const podiumOrder = [
+      topThree.find(item => item.rank === 2),
+      topThree.find(item => item.rank === 1),
+      topThree.find(item => item.rank === 3)
+    ].filter(Boolean);
+
+    const getMedalIcon = (rank) => {
+      switch (rank) {
+        case 1: return '🏆';
+        case 2: return '🥈';
+        case 3: return '🥉';
+        default: return '🎖️';
+      }
+    };
+
+    const getPodiumHeight = (rank) => {
+      switch (rank) {
+        case 1: return 200;
+        case 2: return 180;
+        case 3: return 160;
+        default: return 80;
+      }
+    };
+
+    const getPodiumColor = (rank) => {
+      switch (rank) {
+        case 1: return ['#FFD700', '#FFEC8B']; // Gold gradient
+        case 2: return ['#C0C0C0', '#E8E8E8']; // Silver gradient
+        case 3: return ['#CD7F32', '#E6B17E']; // Bronze gradient
+        default: return ['#667eea', '#764ba2']; // Purple gradient
+      }
+    };
 
     return (
       <View style={styles.podiumSection}>
         <View style={styles.sectionHeader}>
-          <Icon name="trophy" size={24} color="#FFD700" />
+          <View style={styles.trophyIconContainer}>
+            <Icon name="trophy" size={28} color="#FFD700" />
+          </View>
           <Text style={styles.sectionTitle}>Top Performers</Text>
         </View>
-        <View style={styles.podium}>
-          {topThree.map((item) => (
-            <View 
-              key={item.user?._id || item.rank} 
-              style={[
-                styles.podiumItem,
-                item.rank === 1 && styles.firstPlace,
-                item.rank === 2 && styles.secondPlace,
-                item.rank === 3 && styles.thirdPlace,
-              ]}
-            >
-              <View style={styles.podiumRank}>
-                <Text style={styles.podiumRankText}>
-                  {item.rank}
-                </Text>
+
+        <View style={styles.podiumContainer}>
+          {podiumOrder.map((item, index) => {
+            if (!item) return null;
+
+            const isFirstPlace = item.rank === 1;
+            const podiumHeight = getPodiumHeight(item.rank);
+            const podiumColors = getPodiumColor(item.rank);
+
+            return (
+              <View
+                key={item.user?._id || item.rank}
+                style={styles.podiumColumn}
+              >
+                {/* User Avatar/Initial */}
+                <View style={[
+                  styles.podiumAvatar,
+                  isFirstPlace && styles.firstPlaceAvatar
+                ]}>
+                  <Text style={[
+                    styles.avatarText,
+                    isFirstPlace && styles.firstPlaceAvatarText
+                  ]}>
+                    {item.user?.name?.charAt(0).toUpperCase() || '?'}
+                  </Text>
+                  <View style={styles.medalContainer}>
+                    <Text style={styles.medalIcon}>
+                      {getMedalIcon(item.rank)}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Podium Platform */}
+                <View style={[
+                  styles.podiumPlatform,
+                  {
+                    height: podiumHeight,
+                    backgroundColor: podiumColors[0],
+                    borderColor: podiumColors[1]
+                  }
+                ]}>
+                  {/* Platform shine effect */}
+                  <View style={styles.platformShine} />
+
+                  {/* Rank Number */}
+                  <View style={styles.platformRankContainer}>
+                    <View style={[
+                      styles.rankCircle,
+                      { backgroundColor: podiumColors[1] }
+                    ]}>
+                      <Text style={styles.platformRankText}>{item.rank}</Text>
+                    </View>
+                  </View>
+
+                  {/* User Name */}
+                  <Text style={styles.platformName} numberOfLines={1}>
+                    {item.user?.name || 'Unknown'}
+                  </Text>
+
+                  {/* Score */}
+                  <Text style={styles.platformScore}>
+                    {item.score || 0}
+                  </Text>
+                  <Text style={styles.platformPointsLabel}>points</Text>
+                </View>
+
+                {/* Base */}
+                <View style={[
+                  styles.podiumBase,
+                  { backgroundColor: podiumColors[0] }
+                ]} />
               </View>
-              <Text style={styles.podiumName} numberOfLines={1}>
-                {item.user?.name}
-              </Text>
-              <Text style={styles.podiumScore}>
-                {item.score || 0}
-              </Text>
-              <Text style={styles.podiumPoints}>points</Text>
-            </View>
-          ))}
+            );
+          })}
         </View>
       </View>
     );
@@ -206,7 +291,7 @@ const LeaderboardScreen = ({ navigation, route }) => {
           <Text style={styles.statNumber}>{leaderboardData.testInfo.totalParticipants}</Text>
           <Text style={styles.statLabel}>Participants</Text>
         </View>
-        
+
         <View style={styles.statItem}>
           <View style={[styles.statIcon, { backgroundColor: '#E8F5E8' }]}>
             <Icon name="trophy" size={20} color="#388E3C" />
@@ -214,7 +299,7 @@ const LeaderboardScreen = ({ navigation, route }) => {
           <Text style={styles.statNumber}>{leaderboardData.testInfo.highestScore}</Text>
           <Text style={styles.statLabel}>Top Score</Text>
         </View>
-        
+
         <View style={styles.statItem}>
           <View style={[styles.statIcon, { backgroundColor: '#FFF3E0' }]}>
             <Icon name="analytics" size={20} color="#F57C00" />
@@ -223,7 +308,7 @@ const LeaderboardScreen = ({ navigation, route }) => {
           <Text style={styles.statLabel}>Average</Text>
         </View>
       </View>
-      
+
       {/* Best Score Information */}
       {leaderboardData.testInfo.bestScore > 0 && (
         <View style={styles.bestScoreContainer}>
@@ -245,7 +330,7 @@ const LeaderboardScreen = ({ navigation, route }) => {
           <View style={[styles.currentUserCard, styles.notParticipatedCard]}>
             <Icon name="help-circle" size={24} color="#fff" />
             <Text style={styles.currentUserLabel}>You haven't taken this test yet</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.takeTestButton}
               onPress={() => navigation.goBack()}
             >
@@ -282,7 +367,7 @@ const LeaderboardScreen = ({ navigation, route }) => {
       <Text style={styles.emptyStateText}>
         Be the first to complete this test and appear on the leaderboard!
       </Text>
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.ctaButton}
         onPress={() => navigation.goBack()}
       >
@@ -345,7 +430,7 @@ const LeaderboardScreen = ({ navigation, route }) => {
           <View style={styles.leaderboardContainer}>
             {renderPodium()}
             {renderStats()}
-            
+
             {/* Full Leaderboard List */}
             <View style={styles.leaderboardList}>
               <View style={styles.sectionHeader}>
@@ -355,7 +440,7 @@ const LeaderboardScreen = ({ navigation, route }) => {
                   ({leaderboardData.rankings.length} participants)
                 </Text>
               </View>
-              {leaderboardData.rankings.map((item, index) => 
+              {leaderboardData.rankings.map((item, index) =>
                 renderLeaderboardItem({ item, index })
               )}
             </View>
@@ -430,6 +515,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#333',
     marginBottom: 4,
+    textTransform: 'capitalize'
   },
   testSubtitle: {
     fontSize: 14,
@@ -475,63 +561,146 @@ const styles = StyleSheet.create({
     color: '#666',
     marginLeft: 'auto',
   },
-  podium: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    height: 120,
+  podiumSection: {
+    backgroundColor: '#FFFFFF',
+    margin: 16,
+    padding: 20,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
   },
-  podiumItem: {
-    alignItems: 'center',
-    flex: 1,
-    padding: 10,
-  },
-  firstPlace: {
-    height: 120,
+  trophyIconContainer: {
     backgroundColor: '#FFF9E6',
-    borderWidth: 2,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  podiumContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'flex-end',
+    marginTop: 10,
+    paddingHorizontal: 10,
+  },
+  podiumColumn: {
+    flex: 1,
+    alignItems: 'center',
+    marginHorizontal: 5,
+  },
+  podiumAvatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: -30,
+    zIndex: 2,
+    borderWidth: 3,
+    borderColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 6,
+  },
+  firstPlaceAvatar: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    borderWidth: 4,
     borderColor: '#FFD700',
-    borderRadius: 8,
-    justifyContent: 'space-between',
   },
-  secondPlace: {
-    height: 100,
-    backgroundColor: '#F8F9FA',
-    borderWidth: 2,
-    borderColor: '#C0C0C0',
-    borderRadius: 8,
-    justifyContent: 'space-between',
-  },
-  thirdPlace: {
-    height: 80,
-    backgroundColor: '#FFF3E0',
-    borderWidth: 2,
-    borderColor: '#CD7F32',
-    borderRadius: 8,
-    justifyContent: 'space-between',
-  },
-  podiumRank: {
-    marginBottom: 5,
-  },
-  podiumRankText: {
-    fontSize: 16,
+  avatarText: {
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#333',
   },
-  podiumName: {
+  firstPlaceAvatarText: {
+    color: '#FFD700',
+    fontSize: 22,
+  },
+  medalContainer: {
+    position: 'absolute',
+    bottom: -5,
+    right: -5,
+  },
+  medalIcon: {
+    fontSize: 20,
+  },
+  podiumPlatform: {
+    width: '100%',
+    borderRadius: 12,
+    borderWidth: 3,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 40,
+    paddingBottom: 10,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  platformShine: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderTopLeftRadius: 9,
+    borderTopRightRadius: 9,
+  },
+  platformRankContainer: {
+    position: 'absolute',
+    top: 35,
+  },
+  rankCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  platformRankText: {
+    color: '#fff',
     fontSize: 12,
-    fontWeight: '500',
-    color: '#333',
-    textAlign: 'center',
-  },
-  podiumScore: {
-    fontSize: 14,
     fontWeight: 'bold',
-    color: '#b3b72b',
   },
-  podiumPoints: {
+  platformName: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#fff',
+    marginBottom: 5,
+    textAlign: 'center',
+    paddingHorizontal: 5,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  platformScore: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  platformPointsLabel: {
     fontSize: 10,
-    color: '#666',
+    color: 'rgba(255, 255, 255, 0.9)',
+    marginTop: 2,
+  },
+  podiumBase: {
+    width: '120%',
+    height: 10,
+    borderBottomLeftRadius: 8,
+    borderBottomRightRadius: 8,
+    marginTop: -5,
   },
   statsSection: {
     backgroundColor: '#FFFFFF',

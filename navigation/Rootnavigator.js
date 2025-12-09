@@ -25,6 +25,7 @@ const MaterialsScreen = React.lazy(() => import('../screens/MaterialScreen'));
 const LessonDetailScreen = React.lazy(() => import('../screens/LessonDetailScreen'));
 const TestScreen = React.lazy(() => import('../screens/TestScreen'));
 const TestList = React.lazy(() => import('../screens/TestListScreen'));
+const TeacherTestScreen = React.lazy(()=> import('../screens/TeacherTest'))
 const TestResultScreen = React.lazy(() => import('../screens/TestResultScreen'));
 const ComparisonScreen = React.lazy(() => import('../screens/ComparisonScreen'));
 const SolutionsScreen = React.lazy(() => import('../screens/SolutionsScreen'));
@@ -92,6 +93,8 @@ const CustomTabBar = ({ state, descriptors, navigation }) => {
               return isFocused ? 'document-text' : 'document-text-outline';
             case 'ProfileTab':
               return isFocused ? 'person' : 'person-outline';
+            case 'StudentsTab':
+              return isFocused ? 'people' : 'people-outline';
             default:
               return 'square';
           }
@@ -268,6 +271,60 @@ const TestsStack = () => {
     </Stack.Navigator>
   );
 };
+// Tests Stack Navigator - FIXED INITIAL ROUTE
+const TeacherTestsStack = () => {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen 
+        name="TestsMain" 
+        component={withSuspense(TeacherTestScreen)}
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen 
+        name="TestSession" 
+        component={withSuspense(TestScreen)}
+        options={{ 
+          title: 'Test',
+          headerShown: true,
+        }}
+      />
+      <Stack.Screen 
+        name="TestResult" 
+        component={withSuspense(TestResultScreen)}
+        options={{ 
+          title: 'Test Results',
+          headerShown: true,
+        }}
+      />
+      <Stack.Screen 
+        name="Comparison" 
+        component={withSuspense(ComparisonScreen)}
+        options={{ 
+          title: 'Score Comparison',
+          headerShown: true,
+        }}
+      />
+      <Stack.Screen 
+        name="Solutions" 
+        component={withSuspense(SolutionsScreen)}
+        options={{ 
+          title: 'Solutions',
+          headerShown: true,
+        }}
+      />
+      <Stack.Screen 
+        name="Leaderboard" 
+        component={withSuspense(LeaderboardScreen)}
+        options={{ 
+          title: 'Leaderboard',
+          headerShown: true,
+        }}
+      />
+    </Stack.Navigator>
+  );
+};
 
 // Profile Stack Navigator
 const ProfileStack = () => {
@@ -354,11 +411,19 @@ const TeacherTabNavigator = () => {
         }}
       />
       <Tab.Screen 
-        name="TestsTab" 
+        name="StudentsTab" 
         component={StudentDetailScreen}
         options={{
           tabBarLabel: 'Students',
           title: 'Students',
+        }}
+      />
+      <Tab.Screen 
+        name="TestsTab" 
+        component={TeacherTestsStack}
+        options={{
+          tabBarLabel: 'Tests',
+          title: 'Tests',
         }}
       />
       <Tab.Screen 
