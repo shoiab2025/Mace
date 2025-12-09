@@ -73,7 +73,9 @@ const TeacherHomeScreen = () => {
       ]);
 
       setPublicCourses(pbCourses || []);
-      setPrivateCourses(pvCourses || []);
+      setPrivateCourses(pvCourses?.filter((OV) => {
+        return authUser?.institution?.course_access?.includes(OV?._id);
+      }) || []);
       setTeacherCourses(teacherCoursesData || []);
 
       console.log("the teacher course for teacher home", teacherCoursesData)

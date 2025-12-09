@@ -31,6 +31,7 @@ const StudentDetailScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [publicCourses, setPublicCourses] = useState([]);
   const [privateCourses, setPrivateCourses] = useState([]);
+  const [teaherCourse, setTeacherCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('students');
@@ -228,15 +229,19 @@ const StudentDetailScreen = () => {
       setError('');
       setLoading(true);
 
-      const [pbCourses, pvCourses] = await Promise.all([
+      const [pbCourses, pvCourses, teacherCourses] = await Promise.all([
         fetchPublicCourses(),
+        fetchPrivateCourses(),
         fetchPrivateTeacherCourses(authUser)
       ]);
 
       setPublicCourses(pbCourses || []);
-      setPrivateCourses(pvCourses || []);
+      setPrivateCourses(pvCourses?.filter((OV) => {
+        return authUser?.institution?.course_access?.includes(OV?._id);
+      }) || []);
+      setTeacherCourses(teacherCourses || [])
 
-      await loadCreators([...(pbCourses || []), ...(pvCourses || [])]);
+      await loadCreators([...(pbCourses || []), ...(pvCourses || []), ...(teacherCourses || [])]);
     } catch (err) {
       setError('Failed to load courses');
       console.error('Error loading courses:', err);
@@ -671,7 +676,6 @@ const StudentDetailScreen = () => {
     </TouchableOpacity>
   );
 
-  // Render Course Card with Join Requests
   const renderCourseCard = (course) => {
     const hasAccess = checkUserHasAccess(course);
     
